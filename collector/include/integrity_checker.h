@@ -10,6 +10,8 @@
 #include <condition_variable>
 #include <set>
 
+#include "tcp_client.h"
+
 class IntegrityChecker final
 {
     IntegrityChecker(const IntegrityChecker&) = delete;
@@ -43,4 +45,6 @@ private:
     std::deque<std::string> _events_to_send;
     std::mutex _mx_events_queue;
     std::condition_variable _cv_events_queue;
+
+    TCPClient _tcp_client;
 };

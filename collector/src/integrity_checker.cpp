@@ -119,6 +119,10 @@ IntegrityChecker::IntegrityChecker(
     //     std::cout << entry << std::endl;
     // }
 
+    if (!_tcp_client.Connect("127.0.0.1", 5000)) {
+        throw std::runtime_error("couldn't connect to events' monitoring service");
+    }
+
     _scan_thread = std::move(std::thread(&IntegrityChecker::ScanWorker, this));
     _send_thread = std::move(std::thread(&IntegrityChecker::SendWorker, this));
 }
@@ -181,8 +185,10 @@ void IntegrityChecker::SendWorker()
             }
 
             if (!event.empty()) {
-                // TO DO: send via network to monitor service
-                std::cout << "Send event: " << event << std::endl;
+                event.push_back('\n');  // EOL is messages' delimiter, expected by reciver
+                if (!_tcp_client.Send(event)) {
+                    std::cerr << "couldn't send event to monitoring service" << std::endl;
+                }
             } else {
                 if (_stop_send) {
                     break;
