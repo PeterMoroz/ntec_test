@@ -5,7 +5,10 @@
 #include <thread>
 #include <string>
 #include <unordered_map>
-
+#include <deque>
+#include <mutex>
+#include <condition_variable>
+#include <set>
 
 class IntegrityChecker final
 {
@@ -21,11 +24,23 @@ public:
     void Stop() noexcept;
 
 private:
-    void scan_worker();
+    void ScanWorker();
+    void SendWorker();
+
+    void ScheduleEventToSend(std::string&& event);
+
+    void CheckExpectedFiles();
+    void CheckUnexpectedFiles();
 
 private:
     const std::filesystem::path _path_to_watched_dir;
     std::thread _scan_thread;
-    std::atomic<bool> _need_stop{false};
+    std::thread _send_thread;
+    std::atomic<bool> _stop_scan{false};
+    std::atomic<bool> _stop_send{false};
     std::unordered_map<std::filesystem::path, std::string> _files_hashes;
+    std::set<std::filesystem::path> _baseline_files;
+    std::deque<std::string> _events_to_send;
+    std::mutex _mx_events_queue;
+    std::condition_variable _cv_events_queue;
 };

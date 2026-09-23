@@ -10,6 +10,8 @@ FetchContent_MakeAvailable(json)
 set(COLLECTOR_SRC
     events_observer.cpp
     events_processor.cpp
+    sha256.cpp
+    integrity_checker.cpp
 )
 
 add_library(collector ${COLLECTOR_SRC})
