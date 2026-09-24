@@ -42,6 +42,7 @@ private:
     std::atomic<bool> _stop_send{false};
     std::unordered_map<std::filesystem::path, std::string> _files_hashes;
     std::set<std::filesystem::path> _baseline_files;
+    std::set<std::filesystem::path> _detected_out_of_baseline;
     std::deque<std::string> _events_to_send;
     std::mutex _mx_events_queue;
     std::condition_variable _cv_events_queue;

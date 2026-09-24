@@ -26,7 +26,7 @@ EventsProcessor::EventsProcessor(BoundedQueue<std::string>& queue)
     : _queue(queue)
 {
     if (!_tcp_client.Connect("127.0.0.1", 5000)) {
-        throw std::runtime_error("The instance of EventsProcessor couldn't connect to events' monitoring service");
+        throw std::runtime_error("Instance of EventsProcessor couldn't connect to events' monitoring service");
     }
 
     _worker = std::move(std::thread(&EventsProcessor::worker, this));
@@ -97,13 +97,13 @@ void EventsProcessor::ProcessEvent(std::string&& event)
                 std::string alert{CreateSuspiciousActivityAlert(ppid, child_pids)};
                 alert.push_back('\n');  // EOL is messages' delimiter, expected by reciver
                 if (!_tcp_client.Send(event)) {
-                    std::cerr << "couldn't send event to monitoring service" << std::endl;
+                    std::cerr << "Instance of EventsProcessor couldn't send event to monitoring service" << std::endl;
                 }
             }
         } else {
             event.push_back('\n');  // EOL is messages' delimiter, expected by reciver
             if (!_tcp_client.Send(event)) {
-                std::cerr << "couldn't send event to monitoring service" << std::endl;
+                std::cerr << "Instance of EventsProcessor couldn't send event to monitoring service" << std::endl;
             }
         }
 

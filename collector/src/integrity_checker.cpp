@@ -63,7 +63,7 @@ IntegrityChecker::IntegrityChecker(
     }
 
     if (!_tcp_client.Connect("127.0.0.1", 5000)) {
-        throw std::runtime_error("The instance of IntegrityChecker couldn't connect to events' monitoring service");
+        throw std::runtime_error("Instance of IntegrityChecker couldn't connect to events' monitoring service");
     }
 
     _scan_thread = std::move(std::thread(&IntegrityChecker::ScanWorker, this));
@@ -130,7 +130,7 @@ void IntegrityChecker::SendWorker()
             if (!event.empty()) {
                 event.push_back('\n');  // EOL is messages' delimiter, expected by reciver
                 if (!_tcp_client.Send(event)) {
-                    std::cerr << "couldn't send event to monitoring service" << std::endl;
+                    std::cerr << "Instance of IntegrityChecker couldn't send event to monitoring service" << std::endl;
                 }
             } else {
                 if (_stop_send) {
@@ -188,21 +188,6 @@ void IntegrityChecker::CheckExpectedFiles()
 
 void IntegrityChecker::CheckUnexpectedFiles()
 {
-    /* the method scan the observed directory and 
-      calculate difference of sets <found files> / <expected files>,
-      for each item in result set (diff) generate event for sending.
-
-      the percularity of current implementation is that for any file 
-      added (unexpected file) a new event will be generated and sent
-      every time when the method is called even if such event was 
-      already sent (differed only by timestamp).
-
-      considering that the method invoked continuosly by scan thread 
-      such behaviour may be wrong, therefore might be needed to keep
-      the info (path) about all files found during previous scans and 
-      not generate events for them again.
-    */
-
     std::set<std::filesystem::path> files;
     for (const auto& entry : 
             std::filesystem::recursive_directory_iterator(_path_to_watched_dir)) {
@@ -215,9 +200,15 @@ void IntegrityChecker::CheckUnexpectedFiles()
     std::set_difference(files.cbegin(), files.cend(), 
             _baseline_files.cbegin(), _baseline_files.cend(),
             std::inserter(files_diff, files_diff.begin()));
-    
-    for (const auto& entry : files_diff) {
+
+    std::set<std::filesystem::path> files_diff_2;
+    std::set_difference(files_diff.cbegin(), files_diff.cend(), 
+            _detected_out_of_baseline.cbegin(), _detected_out_of_baseline.cend(),
+            std::inserter(files_diff_2, files_diff_2.begin()));
+      
+    for (const auto& entry : files_diff_2) {
         const std::time_t ts = std::time(NULL);
         ScheduleEventToSend(CreateEvent("FileAdded", entry, ts));
+        _detected_out_of_baseline.insert(entry);
     }
 }
