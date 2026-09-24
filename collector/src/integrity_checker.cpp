@@ -103,8 +103,6 @@ void IntegrityChecker::ScanWorker()
             << ex.what() << std::endl;
     }
 
-    std::cout << "ScanWorker finished " << std::endl;
-
     // enforce threads stopping order to avoid missing events left in queue
     _stop_send = true;
     _cv_events_queue.notify_one();    
@@ -142,7 +140,6 @@ void IntegrityChecker::SendWorker()
         std::cerr << "Exception in IntegrityChecker::SendWorker() - "
             << ex.what() << std::endl;
     }
-    std::cout << "SendWorker finished " << std::endl;
 }
 
 void IntegrityChecker::ScheduleEventToSend(std::string&& event)

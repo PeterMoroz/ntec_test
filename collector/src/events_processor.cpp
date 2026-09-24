@@ -21,7 +21,6 @@ std::string CreateSuspiciousActivityAlert(unsigned pid,
 }
 
 
-
 EventsProcessor::EventsProcessor(BoundedQueue<std::string>& queue)
     : _queue(queue)
 {
@@ -29,7 +28,8 @@ EventsProcessor::EventsProcessor(BoundedQueue<std::string>& queue)
         throw std::runtime_error("Instance of EventsProcessor couldn't connect to events' monitoring service");
     }
 
-    _worker = std::move(std::thread(&EventsProcessor::worker, this));
+    _worker = std::move(std::thread(&EventsProcessor::Worker, this));
+    _send_thread = std::move(std::thread(&EventsProcessor::SendWorker, this));
 }
 
 EventsProcessor::~EventsProcessor()
@@ -37,6 +37,7 @@ EventsProcessor::~EventsProcessor()
     Stop();
     try {
         _worker.join();
+        _send_thread.join();
     } catch (const std::exception& ex) {
         std::cerr << "Exception in EventsProcessor::~EventsProcessor() - "
             << ex.what() << std::endl;
@@ -50,10 +51,9 @@ void EventsProcessor::Stop() noexcept
     _need_stop = true;
 }
 
-void EventsProcessor::worker()
+void EventsProcessor::Worker()
 {
     try {
-
         while (true) {
             std::string item;
             if (_queue.GetWithTimeout(item, 1)) {
@@ -74,6 +74,9 @@ void EventsProcessor::worker()
         std::cerr << "Exception in EventsProcessor::worker() - "
             << ex.what() << std::endl;
     }
+
+    _stop_send = true;
+    _send_queue_cv.notify_one();
 }
 
 void EventsProcessor::ProcessEvent(std::string&& event)
@@ -95,16 +98,10 @@ void EventsProcessor::ProcessEvent(std::string&& event)
             const auto child_pids{_detect_rule.CheckProcess(ppid, pid, ts)};
             if (!child_pids.empty()) {
                 std::string alert{CreateSuspiciousActivityAlert(ppid, child_pids)};
-                alert.push_back('\n');  // EOL is messages' delimiter, expected by reciver
-                if (!_tcp_client.Send(event)) {
-                    std::cerr << "Instance of EventsProcessor couldn't send event to monitoring service" << std::endl;
-                }
+                ScheduleEventToSend(std::move(alert));
             }
         } else {
-            event.push_back('\n');  // EOL is messages' delimiter, expected by reciver
-            if (!_tcp_client.Send(event)) {
-                std::cerr << "Instance of EventsProcessor couldn't send event to monitoring service" << std::endl;
-            }
+            ScheduleEventToSend(std::move(event));
         }
 
     } catch (const nlohmann::json::parse_error& e) {
@@ -114,4 +111,45 @@ void EventsProcessor::ProcessEvent(std::string&& event)
         std::cerr << "Exception when access JSON item(s) - "
             << e.what() << std::endl;
     }
+}
+
+void EventsProcessor::SendWorker()
+{
+    try {
+        while (true) {
+            std::string event;
+            {
+                std::unique_lock<std::mutex> lock(_send_queue_mx);
+                       while (_events_to_send.empty() && !_stop_send) {
+                    _send_queue_cv.wait(lock);
+                }
+
+                if (!_events_to_send.empty()) {
+                    event = std::move(_events_to_send.front());
+                    _events_to_send.pop_front();
+                }
+            }
+
+            if (!event.empty()) {
+                event.push_back('\n');  // EOL is messages' delimiter, expected by reciver
+                if (!_tcp_client.Send(event)) {
+                    std::cerr << "Instance of EventsProcessor couldn't send event to monitoring service" << std::endl;
+                }
+            } else {
+                if (_stop_send) {
+                    break;
+                }
+            }
+        }
+    } catch (const std::exception& ex) {
+        std::cerr << "Exception in EventsProcessor::SendWorker() - "
+            << ex.what() << std::endl;
+    }
+}
+
+void EventsProcessor::ScheduleEventToSend(std::string&& event)
+{
+    std::lock_guard<std::mutex> lock(_send_queue_mx);
+    _events_to_send.emplace_back(event);
+    _send_queue_cv.notify_one();
 }
