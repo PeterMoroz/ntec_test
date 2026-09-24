@@ -37,6 +37,8 @@ EventsObserver::~EventsObserver()
         std::cerr << "Exception in EventsObserver::~EventsObserver() - " 
             << ex.what() << std::endl;
     }
+
+    std::cout << "EventsObserver d-tor, queue size=" << _queue.Size() << std::endl;
 }
 
 void EventsObserver::Stop() noexcept

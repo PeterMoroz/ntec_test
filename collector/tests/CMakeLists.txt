@@ -13,3 +13,6 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(test_queue test_queue.cpp)
 target_link_libraries(test_queue gtest gtest_main collector)
+
+add_executable(test_rule test_rule.cpp)
+target_link_libraries(test_rule gtest gtest_main collector)

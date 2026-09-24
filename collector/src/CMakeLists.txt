@@ -33,6 +33,7 @@ set(COLLECTOR_SRC
     sha256.cpp
     integrity_checker.cpp
     tcp_client.cpp
+    check_too_frequent_spawn.cpp
 )
 
 add_library(collector ${COLLECTOR_SRC})

@@ -32,12 +32,6 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    // if (argc != 2) {
-    //     std::cerr << "usage: " << argv[0] 
-    //         << "<path-to-events-log> " << std::endl;
-    //     return -1;
-    // }
-
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = sighandler;
@@ -47,12 +41,18 @@ int main(int argc, char* argv[])
 
     try {
         static const size_t MAX_QUEUE_LENGTH = 256;
-        // BoundedQueue<std::string> queue(MAX_QUEUE_LENGTH);
-        // EventsObserver events_observer(std::filesystem::path{argv[1]}, queue);
+        BoundedQueue<std::string> queue(MAX_QUEUE_LENGTH);
+        /* The order of declaration is important here:
+         As object of EventsProcessor is instantiated before the object of EventsObserver,
+         the latest will be destroyed before destroying the instance of EventsProcessor.
+         Therefore elements in queue will not be lost and
+         processed until queue becomes empty.
+        */
+        EventsProcessor events_processor(queue);
+        EventsObserver events_observer(std::filesystem::path{argv[1]}, queue);
         IntegrityChecker integrity_checker(std::filesystem::path{argv[2]}, 
                                             std::filesystem::path{argv[3]});
 
-        // EventsProcessor events_processor(queue);
 
         while (running) {
             std::this_thread::yield();

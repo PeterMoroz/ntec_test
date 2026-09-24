@@ -62,65 +62,8 @@ IntegrityChecker::IntegrityChecker(
         throw std::runtime_error("could not parse baseline file");
     }
 
-    // std::cout << "files hashes: " << std::endl;
-    // for (const auto& [key, value] : _files_hashes) {
-    //     std::cout << "path: " << key << "hash: " << value << std::endl;
-    // }
-
-    // for (const auto& [key, value] : _files_hashes) {
-    //     try {
-    //         if (!std::filesystem::exists(key)) {
-    //             std::cout << "file " << key << "\tNOT exist" << std::endl;
-    //         } else {
-    //             std::ifstream ifs(key, std::ios::binary);
-    //             if (!ifs.is_open()) {
-    //                 std::cerr << "couldn't open file: " << key << std::endl;
-    //                 continue;
-    //             }
-    //             const size_t fsize = std::filesystem::file_size(key);
-    //             std::vector<unsigned char> filedata;
-    //             filedata.reserve(fsize);
-    //             std::copy(std::istream_iterator<unsigned char>(ifs),
-    //                     std::istream_iterator<unsigned char>(),
-    //                     std::back_inserter(filedata));
-
-    //             SHA256 sha256;
-    //             const std::string filehash(sha256(filedata.data(), fsize));
-    //             std::cout << "filepath: " << key;
-    //             if (filehash == value) {
-    //                 std::cout << " - hash OK" << std::endl;
-    //             } else {
-    //                 std::cout << " - hash mismatch"
-    //                     << "\nexpected: " << value 
-    //                     << "\tactual: " << filehash << std::endl;
-    //             }
-    //         }
-    //     } catch (const std::exception& ex) {
-    //         std::cerr << "Exception when check file's hash: "
-    //             << ex.what() << std::endl;
-    //     }
-    // }
-
-    // std::set<std::filesystem::path> files;
-    // std::cout << "scan observed directory: " << std::endl;
-    // for (const auto& entry : std::filesystem::recursive_directory_iterator(path_to_watched_dir)) {
-    //     if (entry.is_regular_file()) {
-    //         files.insert(entry.path());
-    //     }
-    // }
-
-    // std::set<std::filesystem::path> files_diff;
-    // std::set_difference(files.cbegin(), files.cend(), 
-    //         _baseline_files.cbegin(), _baseline_files.cend(),
-    //         std::inserter(files_diff, files_diff.begin()));
-    
-    // std::cout << "find differences: \n";
-    // for (const auto& entry :files_diff) {
-    //     std::cout << entry << std::endl;
-    // }
-
     if (!_tcp_client.Connect("127.0.0.1", 5000)) {
-        throw std::runtime_error("couldn't connect to events' monitoring service");
+        throw std::runtime_error("The instance of IntegrityChecker couldn't connect to events' monitoring service");
     }
 
     _scan_thread = std::move(std::thread(&IntegrityChecker::ScanWorker, this));
@@ -278,4 +221,3 @@ void IntegrityChecker::CheckUnexpectedFiles()
         ScheduleEventToSend(CreateEvent("FileAdded", entry, ts));
     }
 }
-

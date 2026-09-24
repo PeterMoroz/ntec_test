@@ -4,6 +4,8 @@
 #include <thread>
 
 #include "bounded_queue.h"
+#include "check_too_frequent_spawn.h"
+#include "tcp_client.h"
 
 class EventsProcessor final
 {
@@ -19,9 +21,12 @@ public:
 
 private:
     void worker();
+    void ProcessEvent(std::string&& event);
 
 private:
     BoundedQueue<std::string>& _queue;
     std::thread _worker;
     std::atomic<bool> _need_stop{false};
+    CheckTooFrequentSpawn _detect_rule;
+    TCPClient _tcp_client;
 };

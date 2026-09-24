@@ -4,7 +4,7 @@
 #include <string>
 #include <mutex>
 #include <condition_variable>
-
+#include <chrono>
 
 
 template <typename T>
@@ -37,6 +37,22 @@ public:
             _q.pop_front();
         }
         _not_full.notify_all();
+    } 
+
+    bool GetWithTimeout(T& item, unsigned wait_sec)
+    {
+        {
+            std::unique_lock<std::mutex> lock(_m);
+            if (_not_empty.wait_for(lock, std::chrono::seconds(wait_sec),
+                                    [this]() { return !_q.empty(); })) {
+                item = std::move(_q.front());
+                _q.pop_front();
+            } else {
+                return false;
+            }
+        }
+        _not_full.notify_all();
+        return true;
     }    
 
     size_t Size()
