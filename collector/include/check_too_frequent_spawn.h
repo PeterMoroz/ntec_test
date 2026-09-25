@@ -12,10 +12,22 @@ class CheckTooFrequentSpawn final
     {
         unsigned pid{0};
         unsigned ts{0};
+
+        ChildInfo() = default;
+        ChildInfo(unsigned p, unsigned t) : pid(p), ts(t) {}
     };
 
-    const size_t CHECKED_TIMEFRAME_SEC = 10;
-    const size_t MAX_ALLOWED_PER_FRAME = 5;
+    struct SlidingWindow
+    {
+        SlidingWindow() = default;
+        SlidingWindow(unsigned pid, unsigned ts) {
+            _wnd.emplace_back(pid, ts);
+        }
+
+        std::vector<unsigned> InsertItem(unsigned pid, unsigned ts);
+
+        std::vector<ChildInfo> _wnd;
+    };
 
 public:
     CheckTooFrequentSpawn() = default;
@@ -30,5 +42,5 @@ public:
 
 private:
     // spawn statistics: map parent pid to set children descriptions
-    std::unordered_map<unsigned, std::vector<ChildInfo>> _spawn_stats;
+    std::unordered_map<unsigned, SlidingWindow> _spawn_stats;
 };
