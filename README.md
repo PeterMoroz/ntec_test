@@ -11,6 +11,7 @@ The repo contains 2 directories
 1. *collector*, contains application which collect events, apply rules and generates alerts
 2. *monitor*, contains appliction which listen for connections from collectors, receive alerts serialized in JSON and print them to console
 
+##### building
 Both applications should be build independent. Each subdirectory contains `build.sh` which runs cmake to do all job.
 No need to install dependencies on the build host, all needed will be pulled during build into local directory with cmake-module FetchContent. 
 The implementation of SHA256 algorithm (files `sha256.h` and `sha256.cpp`) I borrowed here https://github.com/stbrumme/hash-library .
@@ -24,28 +25,9 @@ for example create 50 files, ranging from 10K to 500K in size and add random del
 `python3 utils/generate_random_files.py target_directory -n 50 --min-size 10240 --max-size 512000 --max-delay 0.5`
 
 
-##### overall architecture
- ____________________________________________________
- |                                                   |
- |                  Events Collector                 |
- |    ___________________      _____________         |                 
- |   |                   |    |             |        |                                   
- |   |  Events Observer  |    |  Directory  |        |                
- |   |___________________|    |  Integrity  |-- network connection --------
- |            |               |   Checker   |        |                    |
- |            |               |_____________|        |                    |
- |    ________V__________                            |                    |
- |   |                   |                           |           _________V__________
- |   |  Events Queue     |                           |          |                    |
- |   |___________________|                           |          |   Events Monitor   |
- |            |                                      |          |                    |
- |            |                                      |          |____________________|
- |   _________V__________                            |                   ^
- |  |                    |                           |                   |
- |  |  Events Processor  | ------ network connection ---------------------
- |  |____________________|                           |
- |___________________________________________________|
 
+[##### overall architecture](./architecture.svg)
+ 
  Service **EventsCollector** consists of 
 - *EventsObserver* - the module read events (by 2 threads) from supplied file and put these events into queue.
 - *EventsQueue* - thread-safe bounded queue with blocking Put/Get operations
