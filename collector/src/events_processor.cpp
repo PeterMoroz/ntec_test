@@ -28,7 +28,10 @@ EventsProcessor::EventsProcessor(BoundedQueue<std::string>& queue)
         throw std::runtime_error("Instance of EventsProcessor couldn't connect to events' monitoring service");
     }
 
-    _worker = std::move(std::thread(&EventsProcessor::Worker, this));
+    for (size_t i = 0; i < NWORKERS; i++) {
+        _workers[i] = std::move(std::thread(&EventsProcessor::Worker, this));
+    }    
+
     _send_thread = std::move(std::thread(&EventsProcessor::SendWorker, this));
 }
 
@@ -36,7 +39,13 @@ EventsProcessor::~EventsProcessor()
 {
     Stop();
     try {
-        _worker.join();
+        for (size_t i = 0; i < NWORKERS; i++) {
+            _workers[i].join();
+        }
+
+        _stop_send = true;
+        _send_queue_cv.notify_one();        
+
         _send_thread.join();
     } catch (const std::exception& ex) {
         std::cerr << "Exception in EventsProcessor::~EventsProcessor() - "
@@ -74,9 +83,6 @@ void EventsProcessor::Worker()
         std::cerr << "Exception in EventsProcessor::worker() - "
             << ex.what() << std::endl;
     }
-
-    _stop_send = true;
-    _send_queue_cv.notify_one();
 }
 
 void EventsProcessor::ProcessEvent(std::string&& event)

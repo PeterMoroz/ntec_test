@@ -2,6 +2,9 @@
 
 #include <vector>
 #include <unordered_map>
+#include <memory>
+#include <mutex>
+#include <shared_mutex>
 
 class CheckTooFrequentSpawn final
 {
@@ -17,16 +20,19 @@ class CheckTooFrequentSpawn final
         ChildInfo(unsigned p, unsigned t) : pid(p), ts(t) {}
     };
 
-    struct SlidingWindow
+    class SlidingWindow
     {
+    public:
         SlidingWindow() = default;
         SlidingWindow(unsigned pid, unsigned ts) {
             _wnd.emplace_back(pid, ts);
         }
 
         std::vector<unsigned> InsertItem(unsigned pid, unsigned ts);
-
+    
+    private:
         std::vector<ChildInfo> _wnd;
+        std::mutex _mx;
     };
 
 public:
@@ -42,5 +48,6 @@ public:
 
 private:
     // spawn statistics: map parent pid to set children descriptions
-    std::unordered_map<unsigned, SlidingWindow> _spawn_stats;
+    std::unordered_map<unsigned, std::unique_ptr<SlidingWindow>> _spawn_stats;
+    std::shared_mutex _mx;
 };

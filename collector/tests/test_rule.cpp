@@ -8,6 +8,10 @@
 #include <vector>
 #include <algorithm>
 
+/* Test cases just check logical correctness of rule in single thread environment.
+ The behavour of the rule was not checked when concurrent acccess.
+*/
+
 TEST(TestRule, ProcessSpawnNoMoreThan5ChildForAllTime)
 {
     /*

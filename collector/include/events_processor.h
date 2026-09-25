@@ -5,6 +5,7 @@
 #include <deque>
 #include <mutex>
 #include <condition_variable>
+#include <array>
 
 
 #include "bounded_queue.h"
@@ -15,6 +16,8 @@ class EventsProcessor final
 {
     EventsProcessor(const EventsProcessor&) = delete;
     EventsProcessor& operator=(const EventsProcessor&) = delete;
+
+    static const size_t NWORKERS = 2;
 
 
 public:
@@ -32,7 +35,7 @@ private:
 
 private:
     BoundedQueue<std::string>& _queue;
-    std::thread _worker;
+    std::array<std::thread, NWORKERS> _workers;
     std::atomic<bool> _need_stop{false};
     CheckTooFrequentSpawn _detect_rule;
     TCPClient _tcp_client;
