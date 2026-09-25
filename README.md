@@ -38,3 +38,9 @@ for example create 50 files, ranging from 10K to 500K in size and add random del
 Service **EventsMonitor** is a simple TCP-server listening for connections on the port 5000, every incoming connection creates a new session. During session's lifetime it reads messages from socket and print them on console. It's expectes that messages are delimited by symbol '\n'.
 
 The modules *EventsProcessor* and *DirectoryIntegrityChecker* both has TCP-client which connects to endpoint 127.0.0.1:5000 at startup. As endpoint is hardcoded it's expected that  monitoring service is running on the same host.
+
+
+##### improvements
+For sure solution is not perfect. I see the possible directions for improvement:
+1. Directory scan and hash calculation for each tracket file might be expensive. Didn't make any measurements, just assumption. Async monitoring of FS objects seems more beneficial with CPU usage. An example of such approach is open-source multiplatform library written in C++ [git repo](https://github.com/SpartanJ/efsw)
+2. Think about applying lock-free approach to implementation sliding window accessed by multiple events' processing thread to detect suspicious activity of running processes.
