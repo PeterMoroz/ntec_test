@@ -44,3 +44,10 @@ The modules *EventsProcessor* and *DirectoryIntegrityChecker* both has TCP-clien
 For sure solution is not perfect. I see the possible directions for improvement:
 1. Directory scan and hash calculation for each tracket file might be expensive. Didn't make any measurements, just assumption. Async monitoring of FS objects seems more beneficial with CPU usage. An example of such approach is open-source multiplatform library written in C++ [git repo](https://github.com/SpartanJ/efsw)
 2. Think about applying lock-free approach to implementation sliding window accessed by multiple events' processing thread to detect suspicious activity of running processes.
+3. One more idea how to avoid contention when multiple processing threads access the rule object:
+- modernize interface of bounded queue to has ability peek item without pop it 
+- keep thread local instance of rule per thread
+- each thread will peek event's JSON from queue and apply some sieving algorithm to PIDs before pop event and apply rule, such way all 'process-created' events will be divided into groups. thread responsible for group processing pops event, apply detection rule and schedule sending alert if rule detects suspicious activity.
+- pin worker threads to different CPU cores to avoid threads' migration and L1/L2 cache resets
+Pros: simple implementation of detection rule without complexities imposed by lock-free, no waiting on mutexes
+Cons: overcomplication of bounded queue. increasing time of holding mutex when extracting element (we need to parse JSON before make decision - pop element or leave it to processing by another worker)
